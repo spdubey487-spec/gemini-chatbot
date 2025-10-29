@@ -20,12 +20,24 @@ function appendMessage(sender, text) {
   chatBox.scrollTop = chatBox.scrollHeight;
 }
 
+// new helper to show the initial bot prompt so we can remove it later
+function showInitialPrompt() {
+  const existing = document.getElementById("initial-prompt");
+  if (existing) return;
+  const initial = document.createElement("div");
+  initial.id = "initial-prompt";
+  initial.className = "message bot";
+  initial.textContent = "Hey! what are you planning today?";
+  chatBox.appendChild(initial);
+  chatBox.scrollTop = chatBox.scrollHeight;
+}
+
 // new: handler to start a new chat
 newChatBtn?.addEventListener("click", () => {
   conversationHistory = [];
   chatBox.innerHTML = "";
   // display initial assistant message and focus input
-  appendMessage("bot", "Hey! what are you planning today?");
+  showInitialPrompt();
   userInput.value = "";
   userInput.focus();
 });
@@ -34,12 +46,13 @@ function buildPayload(history) {
   const contents = [];
   if (SYSTEM_PROMPT) {
     contents.push({
-      role: "system",
+      role: "user",  // Changed from system to user as Gemini doesn't support system role
       parts: [{ text: SYSTEM_PROMPT }]
     });
   }
   history.forEach(msg => {
-    const role = msg.sender === "assistant" ? "assistant" : "user";
+    // Change this line to map 'assistant' to 'model'
+    const role = msg.sender === "assistant" ? "model" : "user";
     contents.push({
       role,
       parts: [{ text: msg.text }]
@@ -74,11 +87,14 @@ chatForm.addEventListener("submit", async (e) => {
   const text = userInput.value.trim();
   if (!text) return;
 
+  // Remove the initial prompt automatically when the user sends their first real message
+  document.getElementById("initial-prompt")?.remove();
+
   // Reset conversation if user types "new chat"
   if (text.toLowerCase() === "new chat") {
     conversationHistory = [];
     chatBox.innerHTML = "";
-    appendMessage("bot", "Hey! what are you planning today?");
+    showInitialPrompt();
     userInput.value = "";
     return;
   }
