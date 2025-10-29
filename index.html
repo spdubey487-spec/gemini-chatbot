@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Tiger Chat</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="chat-container">
+    <header class="chat-header">
+      <div class="avatar">😎</div>
+      <div class="chat-title">Tiger Assistant</div>
+      <button type="submit" id="new-chat">New</button>
+    </header>
+
+    <div id="chat-box" class="chat-box"></div>
+
+    <form id="chat-form" class="chat-form">
+      <textarea id="user-input" placeholder="Type a message..." rows="1"></textarea>
+      <button type="submit" id="send-btn">➤</button>
+    </form>
+  </div>
+  <script src="system_prompt.js"></script>
+  <script src="API_KEY.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
