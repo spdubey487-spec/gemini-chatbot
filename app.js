@@ -1,11 +1,14 @@
 const API_KEY = window.GEMINI_API_KEY;
 const MODEL = "gemini-2.5-flash";
+const SYSTEM_PROMPT = window.SYSTEM_PROMPT || "";
 
 if (!API_KEY) alert("Missing API key! Please edit API_KEY.js first.");
 
 const chatBox = document.getElementById("chat-box");
 const chatForm = document.getElementById("chat-form");
 const userInput = document.getElementById("user-input");
+// added: reference to the New button
+const newChatBtn = document.getElementById("new-chat");
 
 let conversationHistory = [];
 
@@ -17,13 +20,32 @@ function appendMessage(sender, text) {
   chatBox.scrollTop = chatBox.scrollHeight;
 }
 
+// new: handler to start a new chat
+newChatBtn?.addEventListener("click", () => {
+  conversationHistory = [];
+  chatBox.innerHTML = "";
+  // display initial assistant message and focus input
+  appendMessage("bot", "Hey! what are you planning today?");
+  userInput.value = "";
+  userInput.focus();
+});
+
 function buildPayload(history) {
-  return {
-    contents: history.map(msg => ({
-      role: msg.sender,
+  const contents = [];
+  if (SYSTEM_PROMPT) {
+    contents.push({
+      role: "system",
+      parts: [{ text: SYSTEM_PROMPT }]
+    });
+  }
+  history.forEach(msg => {
+    const role = msg.sender === "assistant" ? "assistant" : "user";
+    contents.push({
+      role,
       parts: [{ text: msg.text }]
-    }))
-  };
+    });
+  });
+  return { contents };
 }
 
 async function queryGemini(history) {
@@ -56,7 +78,7 @@ chatForm.addEventListener("submit", async (e) => {
   if (text.toLowerCase() === "new chat") {
     conversationHistory = [];
     chatBox.innerHTML = "";
-    appendMessage("bot", "Hey! what are you planing today?");
+    appendMessage("bot", "Hey! what are you planning today?");
     userInput.value = "";
     return;
   }
@@ -74,8 +96,10 @@ chatForm.addEventListener("submit", async (e) => {
   try {
     const reply = await queryGemini(conversationHistory);
     loading.textContent = reply;
-    conversationHistory.push({ sender: "model", text: reply });
+    conversationHistory.push({ sender: "assistant", text: reply });
   } catch (err) {
-    loading.textContent = 'Please connect to internet for this answer' ;
+    const errMsg = err?.message || 'Network or API error';
+    loading.textContent = errMsg;
+    conversationHistory.push({ sender: "assistant", text: errMsg });
   }
 });
