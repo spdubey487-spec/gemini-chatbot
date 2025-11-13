@@ -11,8 +11,20 @@
     <header class="chat-header">
       <div class="avatar">😎</div>
       <div class="chat-title">Tiger Assistant</div>
+      <button type="submit" id="history-btn">📋</button>
       <button type="submit" id="new-chat">New</button>
     </header>
+
+    <!-- History Modal -->
+    <div id="history-modal" class="history-modal">
+      <div class="history-modal-content">
+        <div class="history-modal-header">
+          <h2>Chat History</h2>
+          <button class="history-close-btn" id="history-close">✕</button>
+        </div>
+        <div id="history-list" class="history-list"></div>
+      </div>
+    </div>
 
     <div id="chat-box" class="chat-box"></div>
 
@@ -23,6 +35,7 @@
   </div>
   <script src="system_prompt.js"></script>
   <script src="API_KEY.js"></script>
+  <script src="chat_history.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

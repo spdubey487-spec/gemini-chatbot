@@ -12,6 +12,10 @@ const newChatBtn = document.getElementById("new-chat");
 
 let conversationHistory = [];
 
+// Allow a mock streaming mode for local/testing environments.
+// Enable by setting `window.MOCK_STREAM = true` or by adding `?mock=1` to the URL.
+const MOCK_STREAM = window.MOCK_STREAM || new URLSearchParams(window.location.search).get("mock") === "1";
+
 function appendMessage(sender, text, { asHTML = false } = {}) {
   const msg = document.createElement("div");
   msg.className = `message ${sender}`;
@@ -92,7 +96,13 @@ function showInitialPrompt({ simulateTyping = true } = {}) {
 
 // new: handler to start a new chat
 newChatBtn?.addEventListener("click", () => {
+  // Save current chat before creating new one
+  if (conversationHistory.length > 0) {
+    chatHistory.saveChatToHistory(conversationHistory);
+  }
+  
   conversationHistory = [];
+  chatHistory.createNewChat();
   chatBox.innerHTML = "";
   // display initial assistant message and focus input
   showInitialPrompt({ simulateTyping: true });
@@ -100,13 +110,91 @@ newChatBtn?.addEventListener("click", () => {
   userInput.focus();
 });
 
+// History button handler
+const historyBtn = document.getElementById("history-btn");
+const historyModal = document.getElementById("history-modal");
+const historyClose = document.getElementById("history-close");
+
+historyBtn?.addEventListener("click", () => {
+  // Render history list
+  const historyList = document.getElementById("history-list");
+  const allChats = chatHistory.getAllChats();
+  
+  if (allChats.length === 0) {
+    historyList.innerHTML = "<div class='history-empty'>No chat history yet.</div>";
+  } else {
+    historyList.innerHTML = allChats.map(chat => `
+      <div class="history-item" data-chat-id="${chat.id}">
+        <div class="history-item-preview">${escapeHtml(chat.preview)}</div>
+        <div class="history-item-date">${new Date(chat.timestamp).toLocaleString()}</div>
+      </div>
+    `).join("");
+    
+    // Attach click handlers
+    historyList.querySelectorAll(".history-item").forEach(item => {
+      item.addEventListener("click", () => {
+        const selectedChat = chatHistory.getChatById(item.dataset.chatId);
+        if (!selectedChat) return;
+        
+        // Save current chat before switching
+        if (conversationHistory.length > 0) {
+          chatHistory.saveChatToHistory(conversationHistory);
+        }
+        
+        // Load the selected chat
+        conversationHistory = JSON.parse(JSON.stringify(selectedChat.messages));
+        chatHistory.currentChatId = selectedChat.id;
+        
+        // Render messages
+        chatBox.innerHTML = "";
+        conversationHistory.forEach(msg => {
+          appendMessage(msg.sender, msg.text, { asHTML: msg.sender === "bot" });
+        });
+        
+        // Close history modal
+        historyModal.classList.remove("active");
+      });
+    });
+  }
+  
+  historyModal.classList.add("active");
+});
+
+historyClose?.addEventListener("click", () => {
+  historyModal.classList.remove("active");
+});
+
+// Close modal on outside click
+historyModal?.addEventListener("click", (e) => {
+  if (e.target === historyModal) {
+    historyModal.classList.remove("active");
+  }
+});
+
 function buildPayload(history) {
   const contents = [];
+  // Gemini's `parts` can be an array; for very long system prompts we split
+  // the prompt into multiple `parts` entries so the API accepts the content.
+  function chunkTextToParts(text, maxLen = 2000) {
+    const parts = [];
+    if (!text) return parts;
+    let start = 0;
+    while (start < text.length) {
+      const chunk = text.slice(start, start + maxLen);
+      parts.push({ text: chunk });
+      start += maxLen;
+    }
+    return parts;
+  }
+
   if (SYSTEM_PROMPT) {
-    contents.push({
-      role: "user",  // Changed from system to user as Gemini doesn't support system role
-      parts: [{ text: SYSTEM_PROMPT }]
-    });
+    const parts = chunkTextToParts(SYSTEM_PROMPT, 2000);
+    if (parts.length > 0) {
+      contents.push({
+        role: "user", // Kept as user because Gemini doesn't support system role
+        parts
+      });
+    }
   }
   history.forEach(msg => {
     // Change this line to map 'assistant' to 'model'
@@ -121,6 +209,23 @@ function buildPayload(history) {
 
 // Stream-capable query function. onUpdate is called with progressively accumulated text.
 async function queryGemini(history, onUpdate = () => {}) {
+  // If mock streaming is enabled, simulate incremental updates for UI testing.
+  if (MOCK_STREAM) {
+    const demo = "This is a simulated streaming response used for UI testing. It arrives in chunks so you can verify typing and scrolling behavior.";
+    return new Promise((resolve) => {
+      let idx = 0;
+      const interval = 40;
+      const timer = setInterval(() => {
+        idx += Math.ceil(Math.random() * 6);
+        const partial = demo.slice(0, idx);
+        onUpdate(partial);
+        if (idx >= demo.length) {
+          clearInterval(timer);
+          resolve(demo);
+        }
+      }, interval);
+    });
+  }
   const endpoint = `https://generativelanguage.googleapis.com/v1/models/${MODEL}:generateContent?key=${API_KEY}`;
   const payload = buildPayload(history);
 
@@ -261,9 +366,15 @@ chatForm.addEventListener("submit", async (e) => {
     // Ensure final reply is set and conversation history updated
     loading.innerHTML = renderMarkdownToHtml(reply);
     conversationHistory.push({ sender: "assistant", text: reply });
+    
+    // Auto-save to history using the module
+    chatHistory.saveChatToHistory(conversationHistory);
   } catch (err) {
     const errMsg = err?.message || 'Network or API error';
     loading.innerHTML = renderMarkdownToHtml(`**Error:** ${escapeHtml(errMsg)}`);
     conversationHistory.push({ sender: "assistant", text: errMsg });
+    
+    // Auto-save error to history using the module
+    chatHistory.saveChatToHistory(conversationHistory);
   }
 });
