@@ -1,1 +1,289 @@
-# gemini-chatbot
+# Tiger Assistant - Gemini Chatbot
+
+A modern, feature-rich web-based chatbot powered by Google's Gemini API with live streaming responses, long system prompt support (up to 700+ words), and persistent chat history.
+
+## Features
+
+✨ **Live Streaming Responses** — See the AI's response appear in real-time with a blinking cursor, just like ChatGPT  
+📋 **Chat History** — Save and retrieve past conversations; all data stored in browser localStorage  
+🎯 **Long System Prompts** — Support for system prompts up to 700+ words without truncation  
+🔄 **Mock Streaming Mode** — Test the UI without an API key using `?mock=1` parameter  
+📝 **Markdown Support** — Automatic markdown-to-HTML rendering (headings, bold, italics, code blocks)  
+⚡ **Smooth Scrolling** — Auto-scroll to latest messages with smooth animations  
+🎨 **Clean WhatsApp-style UI** — Modern, intuitive design inspired by messaging apps  
+💾 **Persistent Storage** — Chat histories auto-save to browser localStorage  
+
+## Quick Start
+
+### Prerequisites
+- A Google Gemini API key ([get one free](https://ai.google.dev/))
+- A modern web browser (Chrome, Firefox, Safari, Edge)
+
+### Setup
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/spdubey487-spec/gemini-chatbot.git
+   cd gemini-chatbot
+   ```
+
+2. **Create `API_KEY.js`** in the root directory:
+   ```javascript
+   // API_KEY.js
+   window.GEMINI_API_KEY = "your-api-key-here";
+   ```
+   Replace `your-api-key-here` with your actual Gemini API key.
+
+3. **Open in browser**
+   - If using a local server:
+     ```bash
+     python3 -m http.server 8000
+     ```
+     Then visit: `http://localhost:8000`
+   
+   - Or open `index.html` directly in your browser
+
+## File Structure
+
+```
+gemini-chatbot/
+├── index.html          # Main HTML structure
+├── app.js              # Core chat logic and event handlers
+├── chat_history.js     # Chat history storage and retrieval
+├── system_prompt.js    # System prompt configuration
+├── styles.css          # UI styling
+├── API_KEY.js          # (Create this) Your Gemini API key
+└── README.md           # This file
+```
+
+## Configuration
+
+### System Prompt
+
+Edit `system_prompt.js` to customize the AI's behavior:
+
+```javascript
+window.SYSTEM_PROMPT = `You are a helpful assistant that...`;
+```
+
+**Supports up to 700+ words** — No length restrictions!
+
+### Mock Testing (without API key)
+
+To test the UI without a real API key, add `?mock=1` to the URL:
+```
+http://localhost:8000/?mock=1
+```
+
+This simulates streaming responses so you can verify the typing effect and UI behavior.
+
+## Usage
+
+### Chat Interface
+
+- **Send a message** — Type in the textarea and press the send button (➤) or Enter
+- **New chat** — Click the "New" button to start a fresh conversation
+- **View history** — Click the history button (📋) to see all past chats
+- **Load old chat** — Click any chat in the history modal to restore it
+
+### Keyboard Shortcuts
+
+| Action | Shortcut |
+|--------|----------|
+| Send message | Enter or Click ➤ |
+| New chat | Click "New" button |
+| View history | Click 📋 button |
+
+## Chat History
+
+All conversations are automatically saved to **browser localStorage** under the key `"gemini_chat_histories"`.
+
+### Storage Details
+
+- **Location**: Browser's localStorage (client-side only)
+- **Format**: JSON array of chat objects
+- **Auto-save**: After every bot reply
+- **Data structure**:
+  ```javascript
+  {
+    id: "unique-chat-id",
+    timestamp: 1234567890,
+    preview: "First user message (100 chars)...",
+    messages: [
+      { sender: "user", text: "..." },
+      { sender: "assistant", text: "..." }
+    ]
+  }
+  ```
+
+### Exporting Chat History
+
+To export your chat history as a JSON backup:
+
+Open browser console (F12) and run:
+```javascript
+console.log(chatHistory.exportChatsAsJson());
+```
+
+Copy the output and save to a file for backup.
+
+### Importing Chat History
+
+In the browser console:
+```javascript
+chatHistory.importChatsFromJson(jsonString);
+```
+
+Replace `jsonString` with your exported JSON data.
+
+### Check Storage Size
+
+```javascript
+console.log(chatHistory.getStorageInfo());
+```
+
+Shows chat count, storage size in KB, and more.
+
+## API Integration
+
+### Gemini Model
+
+The chatbot uses `gemini-2.5-flash` by default. To change the model, edit `app.js`:
+
+```javascript
+const MODEL = "gemini-2.5-flash";  // Change this line
+```
+
+Available models:
+- `gemini-2.5-flash` (recommended, fast & efficient)
+- `gemini-2.0-pro` (more powerful)
+- Other Gemini models from [Google AI](https://ai.google.dev/)
+
+### Long System Prompt Support
+
+The code automatically chunks long system prompts (>2000 chars) into multiple parts so Gemini accepts them without truncation. No manual configuration needed!
+
+### Streaming
+
+Responses stream in real-time as they're generated by the API. The UI updates progressively with each chunk.
+
+## Troubleshooting
+
+### "Missing API key! Please edit API_KEY.js first."
+
+- Create `API_KEY.js` file with your API key
+- Ensure the file is in the root directory
+
+### Chat history not persisting
+
+- Check if localStorage is enabled in your browser
+- Clear browser cache and reload
+- Check browser storage limit (usually 5-10MB)
+
+### Mock mode not working
+
+- Make sure URL contains `?mock=1`
+- Check browser console for errors (F12)
+
+### Responses not streaming
+
+- Check browser console for network errors
+- Verify API key is valid
+- Check Gemini API rate limits
+
+## Security Notes
+
+⚠️ **Important**: Never commit `API_KEY.js` to version control. Add to `.gitignore`:
+
+```
+API_KEY.js
+```
+
+If using with a public server (ngrok, Cloudflare Tunnel, etc.), consider:
+- Using a server-side proxy to hide the API key
+- Restricting API key to specific origins
+- Revoking the key after testing
+
+## Deployment
+
+### GitHub Pages
+
+1. Push to GitHub
+2. Enable GitHub Pages in repository settings
+3. Note: You'll need to provide the API key via URL parameter or a secure backend proxy
+
+### Vercel / Netlify
+
+1. Push to GitHub
+2. Connect repository to Vercel/Netlify
+3. Set environment variable `VITE_GEMINI_API_KEY` (if using a build tool)
+4. Deploy
+
+### Local Server
+
+```bash
+python3 -m http.server 8000
+```
+
+Visit: `http://localhost:8000`
+
+## Development
+
+### Adding Features
+
+1. Modify `app.js` for logic changes
+2. Modify `styles.css` for UI/styling changes
+3. Modify `chat_history.js` for storage changes
+4. Test in browser with `?mock=1` if needed
+
+### Code Structure
+
+- **app.js**: Main event listeners, chat submission, UI rendering
+- **chat_history.js**: ChatHistory class with localStorage methods
+- **styles.css**: All CSS styling (dark theme, animations, responsive)
+- **system_prompt.js**: Configurable system prompt
+
+## Browser Support
+
+- ✅ Chrome 90+
+- ✅ Firefox 88+
+- ✅ Safari 14+
+- ✅ Edge 90+
+
+## License
+
+MIT License — Feel free to use, modify, and distribute.
+
+## Contributing
+
+Contributions welcome! Feel free to:
+- Report bugs via GitHub Issues
+- Submit pull requests with enhancements
+- Suggest new features
+
+## Changelog
+
+### v1.0.0 (Latest)
+- ✨ Live streaming responses with typing effect
+- 📋 Chat history with localStorage persistence
+- 🎯 Long system prompt support (700+ words)
+- 🔄 Mock streaming mode for testing
+- 📝 Markdown rendering
+- 🎨 WhatsApp-style UI
+
+## Support
+
+For issues or questions:
+- Check the [Troubleshooting](#troubleshooting) section
+- Review `chat_history.js` for storage API docs
+- Check browser console (F12) for errors
+
+## Resources
+
+- [Google Gemini API Docs](https://ai.google.dev/docs)
+- [Gemini API Console](https://aistudio.google.com/)
+- [JavaScript Fetch API](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API)
+
+---
+
+**Made with ❤️ by [spdubey487-spec](https://github.com/spdubey487-spec)**
